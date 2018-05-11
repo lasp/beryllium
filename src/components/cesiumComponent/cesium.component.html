@@ -1,0 +1,39 @@
+<div id="cesium-container" class="split split-horizontal">
+	<md-sidenav class="md-sidenav-left" md-is-open="$ctrl.sidenavOpen" md-disable-backdrop>
+		<md-content>
+			<section>
+				<h3 class="md-toolbar-tools" id="sidenav-header" layout="row">Controls</h3>
+				<md-button id="sidenav-close-btn" ng-click="$ctrl.sidenavOpen = !$ctrl.sidenavOpen">
+					&#10006;
+				</md-button>
+			</section>
+			<div ng-transclude="sideNavContent"></div>
+		</md-content>
+	</md-sidenav>
+	<div class="be-cesium-container" ng-class="{ 'sidenav-open': $ctrl.sidenavOpen }">
+		<div id="{{$ctrl.cesiumElId}}" class="be-cesium-render-target"></div>
+		<div class="alert alert-danger alert-dismissible" id="connection-error-message">
+			<button class="close" onclick="$('#connection-error-message').hide()">&times;</button>
+			<strong>Error!</strong> Could not connect to the server.
+		</div>
+		<div id="loading-indicator" loading-icon>
+			<md-progress-circular md-mode="indeterminate"></md-progress-circular>
+		</div>
+        <md-button id="sidenav-button" ng-click="$ctrl.sidenavOpen = !$ctrl.sidenavOpen">
+            {{$ctrl.sidenavOpen ? "Hide" : "Show"}} Controls
+        </md-button>
+		<md-button id="plot-pane-button" ng-click="$ctrl.togglePaneWidths()">
+			{{$ctrl.plotPaneOpen ? "Hide" : "Show"}} Plots
+		</md-button>
+		<div id="legend-container">
+			<div ng-transclude="legendContent" ng-show="$ctrl.legendOpen"></div>
+			<md-button id="legend-button" ng-click="$ctrl.legendOpen = !$ctrl.legendOpen">
+				{{$ctrl.legendOpen ? "Hide" : "Show"}} Legend
+			</md-button>
+		</div>
+		<div ng-transclude class="be-transclude-container"></div>
+	</div>
+</div>
+<div id="highstock-container" class="split split-horizontal">
+	<div ng-transclude="highstockPaneContent"></div>
+</div>

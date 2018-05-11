@@ -1,0 +1,54 @@
+buildscript {
+	repositories {
+		ivy {
+			url "http://dsweb.lasp.colorado.edu/ivy"
+		}
+		jcenter()
+	}
+
+	dependencies {
+		classpath "com.moowork.gradle:gradle-gulp-plugin:0.10"
+	}
+}
+
+apply plugin: 'com.moowork.gulp'
+
+allprojects {
+	apply plugin: 'eclipse-wtp'
+}
+
+node {
+    // Version of node to use.
+    version = '8.6.0'
+
+    // Enabled the automatic download. False is the default (for now).
+    download = true
+}
+
+// If you forget to run `npm install` or `./gradlew npmInstall` the
+// plugin will tell you to run `./gradlew installGulp` which is part
+// of what you need, but not all of it. This dependency makes sure
+// you wind up in the right place regardless.
+installGulp.dependsOn npmInstall
+
+tasks.addRule("Pattern: unknown tasks will be proxied to gulp") { String taskName ->
+
+	def hasTask = false
+	try {
+		hasTask = tasks.getByName(taskName) == null;
+		return;
+	}
+	catch (e) { /* task not found - continue */ }
+
+	def gulpTaskName = "gulp_${taskName}"
+	tasks.getByName(gulpTaskName).dependsOn('installGulp', 'npmInstall')
+
+	task(taskName) {
+		dependsOn gulpTaskName
+	}
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = '3.5'
+}
+

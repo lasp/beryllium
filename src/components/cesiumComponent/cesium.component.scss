@@ -1,0 +1,143 @@
+cesium {
+	display: block;
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.cesium-viewer {
+	/*Makes text unselectable*/
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+}
+
+.be-cesium-container,
+.be-cesium-render-target
+{
+	position: relative;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	overflow: hidden;
+	height: 100%;
+	width: 100%;
+}
+.be-cesium-container.sidenav-open {
+	float: right;
+	width: calc(100% - 320px); // "Pushes over" when sidenav is open
+}
+.be-transclude-container {
+	pointer-events: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 100%;
+}
+
+.be-transclude-container > * {
+	// The container itself should not be clickable, but its
+	// children should be. This is necessary after making the
+	// transclude container full width and height to allow
+	// more freedom of child element placement.
+	pointer-events: all;
+}
+
+%button {
+	background-color: rgba(158,158,158,0.2);
+	color: #CCC;
+	display: block;
+}
+
+#connection-error-message {
+	display: none;
+	position: absolute;
+	top: 6px;
+	left: 25%;
+	width: 50%;
+	z-index: 1; // To display over everything else on the screen
+}
+
+#highstock-container {
+  background: #333 url(../img/lasp-logo-bg-light.png) no-repeat center center;
+  background-size: 80%;
+}
+
+@keyframes colors {
+	0% { stroke: #4285F4; }
+	25% { stroke: #DE3E35; }
+	50% { stroke: #F7C223; }
+	75% { stroke: #1B9A59; }
+	100% { stroke: #4285F4; }
+}
+
+#legend-button {
+	@extend %button;
+	clear: right;
+	float: right;
+}
+
+#legend-container {
+	bottom: 30px;
+	position: absolute;
+	right: 0;
+}
+
+#loading-indicator {
+	display: block;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-left: -25px; /* half the width of the loading spinner */
+	margin-top: -25px;
+}
+
+md-progress-circular path { // Changes the loading indicator color
+	animation: colors 5.6s ease-in-out infinite;
+}
+
+// This fixes an animation bug with ng-message. When one
+// ng-message replaces another one, they will both display
+// briefly for a second, which is jarring and incorrect.
+// This forces the second one to disappear immediately.
+//
+// Per this github PR, this issue may be fixed when Angular
+// Material 1.1.3 is released. It's worth watching and
+// testing again once that's available.
+//
+// https://github.com/angular/material/issues/9543
+ng-messages [ng-message] ~ [ng-message] {
+	display: none;
+}
+
+#plot-pane-button, #sidenav-button {
+	@extend %button;
+}
+
+#plot-pane-button {
+	position: absolute;
+	right: 50px;
+	top: 0;
+}
+
+#sidenav-button {
+	@extend %button;
+	position: absolute;
+	top: 0;
+}
+
+#sidenav-close-btn {
+	background-color: tomato;
+	color: white;
+	display: inline;
+	float: right;
+}
+
+#sidenav-header {
+	display: inline;
+	line-height: 50px;
+}

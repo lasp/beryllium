@@ -1,0 +1,9 @@
+
+collapse-target {
+    display: block;
+    transition: max-height 0.25s;
+    overflow: hidden;
+}
+collapse-target.collapsed {
+    max-height: 0px !important;
+}

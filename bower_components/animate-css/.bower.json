@@ -1,0 +1,13 @@
+{
+  "name": "animate-css",
+  "_cacheHeaders": {
+    "ETag": "\"7148b57658700ce6a493c016ab7c44d25a5e4cb8\"",
+    "Content-Length": "4427",
+    "Content-Type": "text/plain; charset=utf-8"
+  },
+  "_release": "e-tag:7148b5765",
+  "main": "index.css",
+  "_source": "https://raw.githubusercontent.com/daneden/animate.css/3.5.2/animate.css",
+  "_target": "*",
+  "_originalSource": "https://raw.githubusercontent.com/daneden/animate.css/3.5.2/animate.css"
+}

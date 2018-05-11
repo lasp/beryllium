@@ -1,0 +1,12 @@
+{
+  "name": "lz-string",
+  "_cacheHeaders": {
+    "ETag": "W/\"1194e25d7e9935a06891cd127288e799accc61a7\"",
+    "Content-Type": "application/javascript;charset=utf-8"
+  },
+  "_release": "e-tag:W/\"1194e25",
+  "main": "index.js",
+  "_source": "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js",
+  "_target": "*",
+  "_originalSource": "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js"
+}

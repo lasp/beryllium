@@ -1,0 +1,42 @@
+<md-content layout="column" class="datepicker-parent">
+
+	<p>
+		<label>Available Dates:</label>
+		<span class="nowrap">
+			<span>{{ $ctrl.availableMinDate | date : 'yyyy-MM-dd' : 'UTC' }}</span>
+			&ndash;
+			<span>{{ $ctrl.availableMaxDate | date : 'yyyy-MM-dd' : 'UTC' }}</span>
+		</span>
+	</p>
+
+	<md-input-container class="md-block">
+		<label>Date (UTC)</label>
+		<md-icon class="clickable"
+			md-svg-src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTkgM2gtMVYxaC0ydjJIOFYxSDZ2Mkg1Yy0xLjExIDAtMS45OS45LTEuOTkgMkwzIDE5YzAgMS4xLjg5IDIgMiAyaDE0YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6bTAgMTZINVY4aDE0djExek03IDEwaDV2NUg3eiIvPjwvc3ZnPg=="
+			aria-hidden="true"
+			ng-click="$ctrl.openDate()"
+		></md-icon>
+		<input type="text"
+			uib-datepicker-popup="{{$ctrl.format}}"
+			ng-model="$ctrl.date"
+			ng-click="$ctrl.openDate()"
+			ng-focus="$ctrl.openDate()"
+			is-open="$ctrl.dateOpened"
+            datepicker-options="$ctrl.datepickerOptions" 
+            ng-model-options="{timezone: 'utc'}" />
+		<ng-messages for="$ctrl.errorObj" role="alert" md-auto-hide="false">
+			<div ng-message="tooEarly">
+				Date cannot be before {{ $ctrl.availableMinDate | date : 'yyyy-MM-dd' : 'UTC' }}
+			</div>
+            <div ng-message="tooLate">
+                Date cannot be after {{ $ctrl.availableMaxDate | date : 'yyyy-MM-dd' : 'UTC' }}
+            </div>
+		</ng-messages>
+	</md-input-container>
+	<div>
+		<md-button class="md-raised md-primary"
+			ng-disabled="!$ctrl.date"
+			ng-click="$ctrl.reloadClicked()"
+		>Reload</md-button>
+	</div>
+</md-content>

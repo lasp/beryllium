@@ -1,0 +1,24 @@
+{
+  "name": "moment-strict",
+  "version": "1.0.0",
+  "authors": [
+    "LASP Web Application Development Team",
+    "Brian Putnam"
+  ],
+  "description": "AngularJS service that wraps Moment.js, removing Date fallback",
+  "main": [
+    "./moment-strict.js"
+  ],
+  "devDependencies": {
+  },
+  "ignore": [
+    ".tmp",
+    "bower_components",
+    "gulp",
+    "node_modules",
+    ".gitignore",
+    ".project",
+    "gulpfile.js",
+    "package.json"
+  ]
+}

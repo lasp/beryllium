@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# https://github.com/srs/gradle-node-plugin/issues/24
+
+GRADLE_USER_HOME="${GRADLE_USER_HOME:-${HOME}/.gradle}"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# This should match the "workDir" setting in build.gradle
+NODEJS=$GRADLE_USER_HOME/nodejs
+
+platform=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+arch=$(uname -m | tr '[:upper:]' '[:lower:]')
+case $arch in
+x86_64)
+    nodearch=x64
+    ;;
+x86)
+    nodearch=x86
+    ;;
+esac
+
+# All of these may be overridden by the calling environment if needed.
+NODE_VERSION=${NODE_VERSION:-8.6.0}
+NODE_HOME="${NODE_HOME:-$NODEJS/node-v${NODE_VERSION}-${platform}-${nodearch}}"
+NPM_HOME="${NPM_HOME:-${NODE_HOME}/lib/node_modules/npm}"
+NODE_MODULES_HOME="${NODE_MODULES_HOME:-$DIR/node_modules}"
+
+OLD_PATH=$(echo $PATH)
+NEW_PATH="${NODE_MODULES_HOME}/.bin:${NPM_HOME}/bin:${NODE_HOME}/bin"
+export PATH=$NEW_PATH
+
+# http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
+if ! command -v gulp >/dev/null 2>&1; then
+	export PATH=$OLD_PATH
+	./gradlew npmInstall
+	export PATH=$NEW_PATH
+fi
+
+gulp "${@}"

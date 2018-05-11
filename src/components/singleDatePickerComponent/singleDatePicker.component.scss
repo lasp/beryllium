@@ -1,0 +1,19 @@
+/* Sometimes we have to add this class to parents of
+the datepicker so that the datepicker popup doesn't
+get clipped */
+.datepicker-parent {
+	overflow: visible;
+}
+
+/* this fixes a bug where <ng-messages> transparently covers
+the <input> and so you can't click on it again */
+date-range-picker ng-messages {
+	display: block;
+}
+
+/* this fixes a bug where a <div ng-message="..."> won't
+show if it's the second time a message has displayed */
+date-range-picker [ng-message] {
+	opacity: 1 !important;
+	margin-top: 0px !important;
+}
