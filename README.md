@@ -86,9 +86,9 @@ Beryllium-Maven or Beryllium-MMS. To test the local copy of beryllium, you can u
 ### Run Beryllium without a local copy
 1. `cd beryllium-maven` or `cd beryllium-mms`
 1. `npm install`
-  1. This installs all the node modules required for this project.
+    1. This installs all the node modules required for this project.
 1. `bower install`
-  1. This installs the copy of beryllium that is on the GitHub master branch.
+    1. This installs the copy of beryllium that is on the GitHub master branch.
 1. `gulp serve`
 
 ### Deploying Beryllium
