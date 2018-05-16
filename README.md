@@ -1,14 +1,5 @@
 # Beryllium
 
-### Contacts
-
-* **Product Owner:**
-	N/A
-* **Experienced Devs:**
-    * Fernando Sanchez
-    * Dylan Nguyen
-    * Hunter Leise
-
 ### Beryllium Summary
 
 Beryllium contains shared code that is used throughout all Beryllium apps, including
