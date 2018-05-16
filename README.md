@@ -47,9 +47,8 @@ but a few notable examples are listed here:
 * The `Latis` class: Provides utility methods for making ajax requests to a latis instance.
 
 ### Build System
-We use a standard Gulp and Node build system for this project:
-	[Gulp](https://gulpjs.com/)
-	[Node](https://nodejs.org/en/)
+
+We use a standard [Gulp](https://gulpjs.com/) and [Node](https://nodejs.org/en/) build system for this project.
 
 ##### Task Cheatsheet
 
@@ -66,12 +65,14 @@ Beryllium-Maven or Beryllium-MMS. To test the local copy of beryllium, you can u
 
 1. In one terminal (you'll need 2 eventually):
     1. `cd beryllium`
+    1. `npm install`
     1. `bower link`
         * This installs `beryllium` as a link-able dependency globally on the current machine. You only need to run this once per machine
     1. `gulp watch`
         * Just leave this task running until we're done. You can skip this step and manually `gulp build` every time you make changes if you would like.
 1. In another terminal
     1. `cd beryllium-maven` or `cd beryllium-mms`
+    1. `npm install`
     1. `bower link beryllium`
         * This replaces `bower_components/beryllium` with a symlink to the `beryllium` repo you installed in the other terminal. Be sure not to commit this symlink.
     1. `gulp serve`
@@ -81,7 +82,14 @@ Beryllium-Maven or Beryllium-MMS. To test the local copy of beryllium, you can u
     1. Notice that your change is now visible in the browser
 1. Kill the running `gulp serve` task (`ctrl+c`)
 1. `bower uninstall beryllium` to remove the symlink
-1. To reinstall the beryllium code from the master branch, run `bower install`
+
+### Run Beryllium without a local copy
+1. `cd beryllium-maven` or `cd beryllium-mms`
+1. `npm install`
+  1. This installs all the node modules required for this project.
+1. `bower install`
+  1. This installs the copy of beryllium that is on the GitHub master branch.
+1. `gulp serve`
 
 ### Deploying Beryllium
 
