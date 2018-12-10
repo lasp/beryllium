@@ -24,7 +24,7 @@
     "bootstrap": "^3.3.7",
     "json3": "^3.3.2",
     "lasp-highstock": "https://github.com/lasp/lasp-highstock.git",
-    "lz-string": "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js",
+    "lz-string": "https://cdn.jsdelivr.net/gh/pieroxy/lz-string@86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js",
     "moment-strict": "https://github.com/lasp/moment-strict.git",
     "moment": "^2.16.0",
     "moment-timezone": "^0.5.14",

@@ -6,7 +6,7 @@
   },
   "_release": "e-tag:W/\"1194e25",
   "main": "index.js",
-  "_source": "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js",
+  "_source": "https://cdn.jsdelivr.net/gh/pieroxy/lz-string@86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js",
   "_target": "*",
-  "_originalSource": "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js"
+  "_originalSource": "https://cdn.jsdelivr.net/gh/pieroxy/lz-string@86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js"
 }

@@ -59,7 +59,7 @@ angular
 
         function compressionMaster(func, funcName, value) {
             // If you change this URL, also change it in bower.json
-            var lzStringURL = "https://cdn.rawgit.com/pieroxy/lz-string/86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js";
+            var lzStringURL = "https://cdn.jsdelivr.net/gh/pieroxy/lz-string@86c3934589b0931cec4421549ed714d693b6400e/libs/lz-string.js";
 
             return $q(function(resolve) {
                 if (typeof Worker !== "undefined") { // If web workers are supported by the browser
