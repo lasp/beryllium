@@ -53,8 +53,8 @@ We use a standard [Gulp](https://gulpjs.com/) and [Node](https://nodejs.org/en/)
 ##### Task Cheatsheet
 
 ```
-gulp build // builds the project to the dist folder
-gulp clean // removes dist folder and any/all temporary folders
+npm run build // removes the dist folder and any/all temporary folders and then rebuilds the project to the dist folder
+npm run watch // watches the project and rebuilds when changes are detected
 ```
 
 ### Running Beryllium
@@ -68,19 +68,19 @@ Beryllium-Maven or Beryllium-MMS. To test the local copy of beryllium, you can u
     1. `npm install`
     1. `bower link`
         * This installs `beryllium` as a link-able dependency globally on the current machine. You only need to run this once per machine
-    1. `gulp watch`
-        * Just leave this task running until we're done. You can skip this step and manually `gulp build` every time you make changes if you would like.
+    1. `npm run watch`
+        * Just leave this task running until we're done. You can skip this step and manually `npm run build` every time you make changes if you would like.
 1. In another terminal
     1. `cd beryllium-maven` or `cd beryllium-mms`
     1. `npm install`
     1. `bower link beryllium`
         * This replaces `bower_components/beryllium` with a symlink to the `beryllium` repo you installed in the other terminal. Be sure not to commit this symlink.
-    1. `gulp serve`
+    1. `npm start`
 1. Make some easily-visible changes to the `beryllium` project (e.g. change some text in the dateRangePicker component)
-    1. Notice that the `gulp watch` task in the first tab automatically rebuilds the `beryllium` project (it happens fast, don't blink!)
-    1. Notice that, once `beryllium` has been rebuilt, the `gulp serve` task in the second tab automatically rebuilds the `beryllium-mms` project and reloads your browser tab
+    1. Notice that the `npm run watch` task in the first tab automatically rebuilds the `beryllium` project (it happens fast, don't blink!)
+    1. Notice that, once `beryllium` has been rebuilt, the `npm start` task in the second tab automatically rebuilds the `beryllium-mms` project and reloads your browser tab
     1. Notice that your change is now visible in the browser
-1. Kill the running `gulp serve` task (`ctrl+c`)
+1. Kill the running `npm start` task (`ctrl+c`)
 1. `bower uninstall beryllium` to remove the symlink
 
 ### Run Beryllium without a local copy
@@ -89,7 +89,7 @@ Beryllium-Maven or Beryllium-MMS. To test the local copy of beryllium, you can u
     1. This installs all the node modules required for this project.
 1. `bower install`
     1. This installs the copy of beryllium that is on the GitHub master branch.
-1. `gulp serve`
+1. `npm start`
 
 ### Deploying Beryllium
 

@@ -10385,222 +10385,6 @@ angular
 })();
 (function() {
 
-// [collapse-container] directive
-//
-// This directive is one of three parts of the expand-collapse
-// system. The parts are: collapse-container, collapse-trigger,
-// collapse-target. They are typically arranged like this:
-//
-//    <div collapse-container>
-//        <div>Title <collapse-trigger></collapse-trigger></div>
-//        <collapse-target>
-//            <div><!-- content --></div>
-//        </collapse-target>
-//    </div>
-//
-// The <collapse-trigger> element is a little up/down arrow
-// that controls whether or not the <collapse-target> is
-// collapsed. The [collapse-container] simply acts as message
-// relay; when the <collapse-trigger> is clicked it sends a
-// message up to the [collapse-container]. The [collapse-container]
-// then passes the message on to any <collapse-target>s that
-// live inside it.
-angular
-.module("beryllium")
-.directive("collapseContainer", [
-    function() {
-
-        return {
-            restrict: 'A',
-            controller: [
-                CollapseContainerController
-            ]
-        };
-    }
-]);
-
-function CollapseContainerController() {
-
-    var collapseListeners = [];
-    var _isCollapsed = false;
-
-    this.onCollapseChange = function( listener ) {
-        collapseListeners.push( listener );
-        notifyListener( listener );
-    };
-
-    this.setCollapsed = function( isCollapsed ) {
-        _isCollapsed = isCollapsed;
-        collapseListeners.forEach( notifyListener );
-    };
-
-    this.toggleCollapsed = function() {
-        this.setCollapsed( !_isCollapsed );
-    };
-
-    this.isCollapsed = function() {
-        return _isCollapsed;
-    };
-
-    function notifyListener( listener ) {
-        listener( _isCollapsed );
-    }
-}
-
-
-
-})();
-
-(function() {
-
-// <collapse-target> directive
-//
-// See the [collapse-container] directive for more details
-angular
-.module("beryllium")
-.directive("collapseTarget", [
-    "$timeout",
-    function( $timeout ) {
-        return {
-            restrict: 'E',
-            require: '^^collapseContainer',
-            link: function(scope, element, attrs, collapseContainerCtrl) {
-
-                initMaxHeight();
-
-                collapseContainerCtrl.onCollapseChange(function( isCollapsed ) {
-
-                    // Attempt to keep the max-height up-to-date if the element's
-                    // height changes
-                    var height = elementHeight();
-                    if( height !== 0 ) {
-                        element.css("max-height", height + "px");
-                    }
-
-                    // Add or remove the .collapsed class. If class is removed,
-                    // css will fall back to the element-level max-height style
-                    // that we set.
-                    element.toggleClass( "collapsed", isCollapsed );
-
-                });
-
-                // Repeatedly try to get the height of element. If the measured
-                // height is 0, set a timeout and try again later. If the measured
-                // height is >0, declare victory, set element's max-height accordingly,
-                // and finish.
-                function initMaxHeight() {
-                    var height = elementHeight();
-                    if( height > 0 ) {
-                        element.css("max-height", height + "px");
-                    }
-                    else {
-                        $timeout( initMaxHeight, 100 );
-                    }
-                }
-
-                // There are a lot of different ways to get the height of an element,
-                // with annoyingly small levels of nuance between them. This is a
-                // convenience function so that we can change it in only one place.
-                //
-                // clientHeight: height of only the content box
-                // offsetHeight: height of the content box + padding + border
-                // scrollHeight: height of the stuff *inside* the content box
-                //        (will be >clientHeight if you can scroll this element)
-                function elementHeight() {
-                    return element[0].scrollHeight;
-                }
-
-            }
-        };
-    }
-]);
-
-})();
-
-(function() {
-
-// <collapse-trigger> directive
-//
-// See the [collapse-container] directive for more details
-angular
-.module("beryllium")
-.directive("collapseTrigger", [
-    function() {
-        return {
-            restrict: 'E',
-            template: "<md-icon>{{className}}</md-icon>",
-            require: '^^collapseContainer',
-            scope: {},
-            link: function(scope, element, attrs, collapseContainerCtrl) {
-
-                var vm = scope;
-
-                // This will be initialized once we get the current isCollapsed
-                // state from the collapseContainerCtrl
-                vm.className = "";
-
-                element.on("click", function(e) {
-                    collapseContainerCtrl.toggleCollapsed();
-                });
-
-                collapseContainerCtrl.onCollapseChange(function( isCollapsed ) {
-                    vm.className = isCollapsed ? "expand_more" : "expand_less";
-
-                    // Most of the time when this event is triggered, we're not in a digest
-                    // cycle (happens during a click event) and so we need to call $digest.
-                    // However, the first time this gets called is while we're registering
-                    // the event handler and that does happen to be inside a digest loop.
-                    // This is apparently really not how you're supposed to do this sort
-                    // of thing, but I haven't come across any better solutions yet.
-                    //
-                    // http://stackoverflow.com/questions/12729122/angularjs-prevent-error-digest-already-in-progress-when-calling-scope-apply
-                    if( !(scope.$$phase || scope.$root.$$phase) ){
-                      scope.$digest();
-                    }
-                });
-
-            }
-        };
-    }
-]);
-
-})();
-
-(function() {
-
-// [loading-icon] directive
-//
-// This directive displays the associated element whenever there
-// is a pending http request. Example use:
-//
-//	<div id="loading-indicator" loading-icon>
-//      <md-progress-circular md-mode="intermediate"></md-progress-circular>
-//  </div>
-
-angular
-.module("beryllium")
-.directive("loadingIcon", ['$http' ,
-    function($http) {
-        return {
-            restrict: 'A',
-            link: function (scope, elm, attrs) {
-                scope.$watch(function() {
-                    return $http.pendingRequests.length > 0;
-                }, function( isPending ) {
-                    if (isPending) {
-                        $(elm).css('display', 'block');
-                    } else {
-                        $(elm).css('display', 'none');
-                    }
-                });
-            }
-        };
-    }
-]);
-
-})();
-(function() {
-
 /**
  * <cesium> component
  *
@@ -11193,6 +10977,300 @@ angular
 .component("webGlError", {
 	templateUrl: "components/webGlErrorComponent/webGlError.component.html",
 });
+
+})();
+'use strict';
+
+
+/*
+ * Returns a shortened or lengthened number based on the desired length.
+ * If the number is greater than the desired length, it will return
+ * the number in exponential form with the desired exponential length.
+ * If the number is less than the desired length, it will suffix zeros
+ * until it is the desired length.
+ */
+angular
+    .module("beryllium")
+    .filter("numLen", [
+        numLenFilter
+    ]);
+
+function numLenFilter() {
+    // Allows for String.prototype.repeat to work on IE
+    if (!String.prototype.repeat) {
+        String.prototype.repeat = function(count) {
+            'use strict';
+            if (this == null) {
+                throw new TypeError('can\'t convert ' + this + ' to object');
+            }
+            var str = '' + this;
+            count = +count;
+            if (count != count) {
+                count = 0;
+            }
+            if (count < 0) {
+                throw new RangeError('repeat count must be non-negative');
+            }
+            if (count == Infinity) {
+                throw new RangeError('repeat count must be less than infinity');
+            }
+            count = Math.floor(count);
+            if (str.length == 0 || count == 0) {
+                return '';
+            }
+            // Ensuring count is a 31-bit integer allows us to heavily optimize the
+            // main part. But anyway, most current (August 2014) browsers can't handle
+            // strings 1 << 28 chars or longer, so:
+            if (str.length * count >= 1 << 28) {
+                throw new RangeError('repeat count must not overflow maximum string size');
+            }
+            var rpt = '';
+            for (;;) {
+                if ((count & 1) == 1) {
+                    rpt += str;
+                }
+                count >>>= 1;
+                if (count == 0) {
+                    break;
+                }
+                str += str;
+            }
+            return rpt;
+        }
+    }
+
+    return function(num, desiredLen, expLen) {
+        if (typeof(num) === 'number') {
+            var numString = num.toLocaleString();
+            var numLength = numString.replace('.', '').replace(',', '').replace('-', '').length;
+            if (numLength > desiredLen) {
+                return num.toExponential(expLen);
+            } else if (numLength < desiredLen) {
+                if (Number.isInteger(num)) { return numString.concat('.').concat('0'.repeat(desiredLen - numLength)); }
+                else { return numString.concat('0'.repeat(desiredLen - numLength)); }
+            } else {
+                return numString;
+            }
+        } else {
+            return num;
+        }
+    }
+}
+
+(function() {
+
+// [collapse-container] directive
+//
+// This directive is one of three parts of the expand-collapse
+// system. The parts are: collapse-container, collapse-trigger,
+// collapse-target. They are typically arranged like this:
+//
+//    <div collapse-container>
+//        <div>Title <collapse-trigger></collapse-trigger></div>
+//        <collapse-target>
+//            <div><!-- content --></div>
+//        </collapse-target>
+//    </div>
+//
+// The <collapse-trigger> element is a little up/down arrow
+// that controls whether or not the <collapse-target> is
+// collapsed. The [collapse-container] simply acts as message
+// relay; when the <collapse-trigger> is clicked it sends a
+// message up to the [collapse-container]. The [collapse-container]
+// then passes the message on to any <collapse-target>s that
+// live inside it.
+angular
+.module("beryllium")
+.directive("collapseContainer", [
+    function() {
+
+        return {
+            restrict: 'A',
+            controller: [
+                CollapseContainerController
+            ]
+        };
+    }
+]);
+
+function CollapseContainerController() {
+
+    var collapseListeners = [];
+    var _isCollapsed = false;
+
+    this.onCollapseChange = function( listener ) {
+        collapseListeners.push( listener );
+        notifyListener( listener );
+    };
+
+    this.setCollapsed = function( isCollapsed ) {
+        _isCollapsed = isCollapsed;
+        collapseListeners.forEach( notifyListener );
+    };
+
+    this.toggleCollapsed = function() {
+        this.setCollapsed( !_isCollapsed );
+    };
+
+    this.isCollapsed = function() {
+        return _isCollapsed;
+    };
+
+    function notifyListener( listener ) {
+        listener( _isCollapsed );
+    }
+}
+
+
+
+})();
+
+(function() {
+
+// <collapse-target> directive
+//
+// See the [collapse-container] directive for more details
+angular
+.module("beryllium")
+.directive("collapseTarget", [
+    "$timeout",
+    function( $timeout ) {
+        return {
+            restrict: 'E',
+            require: '^^collapseContainer',
+            link: function(scope, element, attrs, collapseContainerCtrl) {
+
+                initMaxHeight();
+
+                collapseContainerCtrl.onCollapseChange(function( isCollapsed ) {
+
+                    // Attempt to keep the max-height up-to-date if the element's
+                    // height changes
+                    var height = elementHeight();
+                    if( height !== 0 ) {
+                        element.css("max-height", height + "px");
+                    }
+
+                    // Add or remove the .collapsed class. If class is removed,
+                    // css will fall back to the element-level max-height style
+                    // that we set.
+                    element.toggleClass( "collapsed", isCollapsed );
+
+                });
+
+                // Repeatedly try to get the height of element. If the measured
+                // height is 0, set a timeout and try again later. If the measured
+                // height is >0, declare victory, set element's max-height accordingly,
+                // and finish.
+                function initMaxHeight() {
+                    var height = elementHeight();
+                    if( height > 0 ) {
+                        element.css("max-height", height + "px");
+                    }
+                    else {
+                        $timeout( initMaxHeight, 100 );
+                    }
+                }
+
+                // There are a lot of different ways to get the height of an element,
+                // with annoyingly small levels of nuance between them. This is a
+                // convenience function so that we can change it in only one place.
+                //
+                // clientHeight: height of only the content box
+                // offsetHeight: height of the content box + padding + border
+                // scrollHeight: height of the stuff *inside* the content box
+                //        (will be >clientHeight if you can scroll this element)
+                function elementHeight() {
+                    return element[0].scrollHeight;
+                }
+
+            }
+        };
+    }
+]);
+
+})();
+
+(function() {
+
+// <collapse-trigger> directive
+//
+// See the [collapse-container] directive for more details
+angular
+.module("beryllium")
+.directive("collapseTrigger", [
+    function() {
+        return {
+            restrict: 'E',
+            template: "<md-icon>{{className}}</md-icon>",
+            require: '^^collapseContainer',
+            scope: {},
+            link: function(scope, element, attrs, collapseContainerCtrl) {
+
+                var vm = scope;
+
+                // This will be initialized once we get the current isCollapsed
+                // state from the collapseContainerCtrl
+                vm.className = "";
+
+                element.on("click", function(e) {
+                    collapseContainerCtrl.toggleCollapsed();
+                });
+
+                collapseContainerCtrl.onCollapseChange(function( isCollapsed ) {
+                    vm.className = isCollapsed ? "expand_more" : "expand_less";
+
+                    // Most of the time when this event is triggered, we're not in a digest
+                    // cycle (happens during a click event) and so we need to call $digest.
+                    // However, the first time this gets called is while we're registering
+                    // the event handler and that does happen to be inside a digest loop.
+                    // This is apparently really not how you're supposed to do this sort
+                    // of thing, but I haven't come across any better solutions yet.
+                    //
+                    // http://stackoverflow.com/questions/12729122/angularjs-prevent-error-digest-already-in-progress-when-calling-scope-apply
+                    if( !(scope.$$phase || scope.$root.$$phase) ){
+                      scope.$digest();
+                    }
+                });
+
+            }
+        };
+    }
+]);
+
+})();
+
+(function() {
+
+// [loading-icon] directive
+//
+// This directive displays the associated element whenever there
+// is a pending http request. Example use:
+//
+//	<div id="loading-indicator" loading-icon>
+//      <md-progress-circular md-mode="intermediate"></md-progress-circular>
+//  </div>
+
+angular
+.module("beryllium")
+.directive("loadingIcon", ['$http' ,
+    function($http) {
+        return {
+            restrict: 'A',
+            link: function (scope, elm, attrs) {
+                scope.$watch(function() {
+                    return $http.pendingRequests.length > 0;
+                }, function( isPending ) {
+                    if (isPending) {
+                        $(elm).css('display', 'block');
+                    } else {
+                        $(elm).css('display', 'none');
+                    }
+                });
+            }
+        };
+    }
+]);
 
 })();
 (function() {
@@ -12942,84 +13020,6 @@ function isWebGlAvailable() {
 }
 
 })();
-
-'use strict';
-
-
-/*
- * Returns a shortened or lengthened number based on the desired length.
- * If the number is greater than the desired length, it will return
- * the number in exponential form with the desired exponential length.
- * If the number is less than the desired length, it will suffix zeros
- * until it is the desired length.
- */
-angular
-    .module("beryllium")
-    .filter("numLen", [
-        numLenFilter
-    ]);
-
-function numLenFilter() {
-    // Allows for String.prototype.repeat to work on IE
-    if (!String.prototype.repeat) {
-        String.prototype.repeat = function(count) {
-            'use strict';
-            if (this == null) {
-                throw new TypeError('can\'t convert ' + this + ' to object');
-            }
-            var str = '' + this;
-            count = +count;
-            if (count != count) {
-                count = 0;
-            }
-            if (count < 0) {
-                throw new RangeError('repeat count must be non-negative');
-            }
-            if (count == Infinity) {
-                throw new RangeError('repeat count must be less than infinity');
-            }
-            count = Math.floor(count);
-            if (str.length == 0 || count == 0) {
-                return '';
-            }
-            // Ensuring count is a 31-bit integer allows us to heavily optimize the
-            // main part. But anyway, most current (August 2014) browsers can't handle
-            // strings 1 << 28 chars or longer, so:
-            if (str.length * count >= 1 << 28) {
-                throw new RangeError('repeat count must not overflow maximum string size');
-            }
-            var rpt = '';
-            for (;;) {
-                if ((count & 1) == 1) {
-                    rpt += str;
-                }
-                count >>>= 1;
-                if (count == 0) {
-                    break;
-                }
-                str += str;
-            }
-            return rpt;
-        }
-    }
-
-    return function(num, desiredLen, expLen) {
-        if (typeof(num) === 'number') {
-            var numString = num.toLocaleString();
-            var numLength = numString.replace('.', '').replace(',', '').replace('-', '').length;
-            if (numLength > desiredLen) {
-                return num.toExponential(expLen);
-            } else if (numLength < desiredLen) {
-                if (Number.isInteger(num)) { return numString.concat('.').concat('0'.repeat(desiredLen - numLength)); }
-                else { return numString.concat('0'.repeat(desiredLen - numLength)); }
-            } else {
-                return numString;
-            }
-        } else {
-            return num;
-        }
-    }
-}
 
 angular.module('beryllium').run(['$templateCache', function($templateCache) {$templateCache.put('components/cesiumComponent/cesium.component.html','<div id="cesium-container" class="split split-horizontal"><md-sidenav class="md-sidenav-left" md-is-open="$ctrl.sidenavOpen" md-disable-backdrop=""><md-content><section><h3 class="md-toolbar-tools" id="sidenav-header" layout="row">Controls</h3><md-button id="sidenav-close-btn" ng-click="$ctrl.sidenavOpen = !$ctrl.sidenavOpen">&#10006;</md-button></section><div ng-transclude="sideNavContent"></div></md-content></md-sidenav><div class="be-cesium-container" ng-class="{ \'sidenav-open\': $ctrl.sidenavOpen }"><div id="{{$ctrl.cesiumElId}}" class="be-cesium-render-target"></div><div class="alert alert-danger alert-dismissible" id="connection-error-message"><button class="close" onclick="$(\'#connection-error-message\').hide()">&times;</button> <strong>Error!</strong> Could not connect to the server.</div><div id="loading-indicator" loading-icon=""><md-progress-circular md-mode="indeterminate"></md-progress-circular></div><md-button id="sidenav-button" ng-click="$ctrl.sidenavOpen = !$ctrl.sidenavOpen">{{$ctrl.sidenavOpen ? "Hide" : "Show"}} Controls</md-button><md-button id="plot-pane-button" ng-click="$ctrl.togglePaneWidths()">{{$ctrl.plotPaneOpen ? "Hide" : "Show"}} Plots</md-button><div id="legend-container"><div ng-transclude="legendContent" ng-show="$ctrl.legendOpen"></div><md-button id="legend-button" ng-click="$ctrl.legendOpen = !$ctrl.legendOpen">{{$ctrl.legendOpen ? "Hide" : "Show"}} Legend</md-button></div><div ng-transclude="" class="be-transclude-container"></div></div></div><div id="highstock-container" class="split split-horizontal"><div ng-transclude="highstockPaneContent"></div></div>');
 $templateCache.put('components/dateRangePickerComponent/dateRangePicker.component.html','<md-content layout="column" class="datepicker-parent"><p><label>Available Dates:</label> <span class="nowrap"><span>{{ $ctrl.availableMinDate | date : \'yyyy-MM-dd\' : \'UTC\' }}</span> &ndash; <span>{{ $ctrl.availableMaxDate | date : \'yyyy-MM-dd\' : \'UTC\' }}</span></span></p><md-input-container class="md-block"><label>Start time (UTC)</label><md-icon class="clickable" md-svg-src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTkgM2gtMVYxaC0ydjJIOFYxSDZ2Mkg1Yy0xLjExIDAtMS45OS45LTEuOTkgMkwzIDE5YzAgMS4xLjg5IDIgMiAyaDE0YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6bTAgMTZINVY4aDE0djExek03IDEwaDV2NUg3eiIvPjwvc3ZnPg==" aria-hidden="true" ng-click="$ctrl.openMin()"></md-icon><input type="text" uib-datepicker-popup="{{$ctrl.format}}" ng-model="$ctrl.displayMinDate" ng-click="$ctrl.openMin()" ng-focus="$ctrl.openMin()" is-open="$ctrl.minDateOpened" datepicker-options="$ctrl.datepickerOptions"><ng-messages for="$ctrl.errorObj" role="alert" md-auto-hide="false"><div ng-message="startTooEarly">Start time cannot be before {{ $ctrl.availableMinDate | date : \'yyyy-MM-dd\' : \'UTC\' }}</div></ng-messages></md-input-container><md-input-container class="md-block"><label>End time (UTC)</label><md-icon class="clickable" md-svg-src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTkgM2gtMVYxaC0ydjJIOFYxSDZ2Mkg1Yy0xLjExIDAtMS45OS45LTEuOTkgMkwzIDE5YzAgMS4xLjg5IDIgMiAyaDE0YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6bTAgMTZINVY4aDE0djExek03IDEwaDV2NUg3eiIvPjwvc3ZnPg==" aria-hidden="true" ng-click="$ctrl.openMax()"></md-icon><input type="text" uib-datepicker-popup="{{$ctrl.format}}" ng-model="$ctrl.displayMaxDate" ng-click="$ctrl.openMax()" ng-focus="$ctrl.openMax()" is-open="$ctrl.maxDateOpened" datepicker-options="$ctrl.datepickerOptions"><ng-messages for="$ctrl.errorObj" role="alert" md-auto-hide="false"><div ng-message="endBeforeStart">The end time must be after the start time</div><div ng-message="endTooLate">End time cannot be after {{ $ctrl.availableMaxDate | date : \'yyyy-MM-dd\' : \'UTC\' }}</div><div ng-message="rangeTooLarge">You cannot request more than 24 hours of data.</div></ng-messages></md-input-container><div><md-button class="md-raised md-primary" ng-disabled="!$ctrl.displayMinDate || !$ctrl.displayMaxDate" ng-click="$ctrl.reloadClicked()">Reload</md-button></div></md-content>');

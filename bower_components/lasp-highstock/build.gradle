@@ -1,8 +1,5 @@
 buildscript {
 	repositories {
-		ivy {
-			url "http://dsweb.lasp.colorado.edu/ivy"
-		}
 		jcenter()
 	}
 
@@ -51,4 +48,3 @@ tasks.addRule("Pattern: unknown tasks will be proxied to gulp") { String taskNam
 task wrapper(type: Wrapper) {
 	gradleVersion = '3.5'
 }
-

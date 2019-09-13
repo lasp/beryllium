@@ -193,6 +193,7 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                     end: null
                 }
             }, scope.initialTimeRange );
+            sanitizeTimeRange();
 
             // init scope.datasets
             /* scope.datasets is an array of objects.
@@ -305,10 +306,10 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                             scope.timeRange.total.end = new Date( scope.timeRange.total.end.getTime() + offset );
                         }
                         if ( scope.timeRange.visible.start ) {
-                            scope.timeRange.visible.start += offset;
+                            scope.timeRange.visible.start = new Date( scope.timeRange.visible.start.getTime() + offset );
                         }
                         if ( scope.timeRange.visible.end ) {
-                            scope.timeRange.visible.end += offset;
+                            scope.timeRange.visible.end = new Date( scope.timeRange.visible.end.getTime() + offset );
                         }
                     }
                 }
@@ -346,23 +347,6 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 return scope.datasets.some( function(ds) {
                     return ChartData.parseOffset( ds.offset ) !== 0;
                 });
-            };
-
-            scope.filterSelection = {
-                type: "none",
-                active: false,
-                minmax: {
-                    enabled: false,
-                    min: null,
-                    max: null
-                },
-                delta: {
-                    enabled: false,
-                    value: null
-                },
-                change: {
-                    enabled: false
-                }
             };
 
             var closeDropdownMenusOnClick = function( $event ) {
@@ -441,78 +425,69 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 else return constants.EXPORTING && !scope.loading && scope.noDataErrorKeys.length < scope.datasets.length;
             };
 
-            // add / change filters for all datasets. This function only allows one filter at a time.
-            scope.addFilter = function() {
-                scope.filterError = '';
-                if ( scope.filterSelection.type === 'none' ) {
-                    scope.removeFilter();
-
-                } else if ( scope.filterSelection.type === 'minmax' ) {
-                    var min = angular.copy( scope.filterSelection.minmax.min );
-                    var max =  angular.copy( scope.filterSelection.minmax.max );
-                    if ( isNaN( max ) ) {
-                        scope.filterError = "max value must be a number";
-                        return;
-                    }
-                    if ( isNaN( min ) ) {
-                        scope.filterError = "min value must be a number";
-                        return;
-                    }
-                    if ( min >= max ) {
-                        scope.filterError = "min value must be less than max";
-                        return;
-                    }
-                    scope.filterSelection.active = true;
-                    scope.datasets.forEach( function(ds) {
-                        ds.filters.minmax = {
-                            enabled: true,
-                            min: min,
-                            max: max
-                        };
-                        ds.filters.delta.enabled = false;
-                        ds.filters.change.enabled = false;
-                    });
-
-                } else if ( scope.filterSelection.type === "delta" ) {
-                    var value = angular.copy( scope.filterSelection.delta.value );
-                    if ( isNaN( value ) ) {
-                        scope.filterError = "max delta must be a number";
-                        return;
-                    }
-                    if ( value <= 0 ) {
-                        scope.filterError = "max delta must be greater than 0";
-                        return;
-                    }
-                    scope.filterSelection.active = true;
-                    scope.datasets.forEach( function(ds) {
-                        ds.filters.minmax.enabled = false;
-                        ds.filters.delta = {
-                            enabled: true,
-                            value: value
-                        },
-                        ds.filters.change.enabled = false;
-                    });
-
-                } else if ( scope.filterSelection.type === 'change' ) {
-                    scope.filterSelection.active = true;
-                    scope.datasets.forEach( function(ds) {
-                        ds.filters.minmax.enabled = false;
-                        ds.filters.delta.enabled = false;
-                        ds.filters.change.enabled = true;
-                    });
+            // scope.filterSelection tracks the filter button dropdown, which sets the same
+            // filters across all datasets
+            scope.filterSelection = {
+                minmax: {
+                    enabled: false,
+                    min: null,
+                    max: null
+                },
+                delta: {
+                    enabled: false,
+                    value: null
+                },
+                change: {
+                    enabled: false
                 }
-
-                scope.filterMenuOpen = false;
             };
 
-            //remove the filter by disabling each one
-            scope.removeFilter = function() {
-                scope.filterSelection.active = false;
-                scope.datasets.forEach( function(ds) {
-                    ds.filters.minmax.enabled = false;
-                    ds.filters.delta.enabled = false;
-                    ds.filters.change.enabled = false;
+            scope.filtersAreActive = function() {
+                // search through all the filters of each dataset, to see if any are enabled
+                return scope.datasets.some( function(ds) {
+                    return ds.filters.minmax.enabled || ds.filters.delta.enabled || ds.filters.change.enabled;
                 });
+            };
+
+            // add / change filters for all datasets.
+            scope.applyFilters = function() {
+                scope.filterError = '';
+                // check for errors before altering filter settings for datasets
+                if ( scope.filterSelection.minmax.enabled ) {
+                    var min = scope.filterSelection.minmax.min;
+                    var max = scope.filterSelection.minmax.max;
+                    if ( Number(min) !== min || isNaN(min) ) {
+                        scope.filterError = "Min value must be a number";
+                        return;
+                    } else if ( Number(max) !== max || isNaN(max) ) {
+                        scope.filterError = "Max value must be a number";
+                        return;
+                    } else if ( min >= max ) {
+                        scope.filterError = "Min value must be less than max";
+                        return;
+                    }
+
+                }
+
+                if ( scope.filterSelection.delta.enabled ) {
+                    var value = scope.filterSelection.delta.value;
+                    if ( Number(value) !== value || isNaN(value) ) {
+                        scope.filterError = "Delta max change must be a number";
+                        return;
+                    } else if ( value <= 0 ) {
+                        scope.filterError = "Delta max change must be greater than 0";
+                        return;
+                    }
+
+                }
+
+                // apply the changes to all datasets
+                scope.datasets.forEach( function(ds) {
+                    ds.filters = angular.copy( scope.filterSelection );
+                });
+
+                // close the filter menu
+                scope.filterMenuOpen = false;
             };
 
             // get the query used in the URL to tell latis to filter the data
@@ -555,11 +530,11 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
              * @example
              * scope.setTimeRange({
              *     total: {
-             *         start: new Date('Feb 20, 2000'),
-             *         end: new Date('Feb 21, 2000')
+             *         start: new Date('Feb 20, 2000 00:00:00'),
+             *         end: new Date('Feb 21, 2000 00:00:00')
              *     },
              *     visible: {
-             *         start: 951030000000,
+             *         start: new Date('Feb 20, 2000 12:00:00'),
              *         end: undefined
              *     }
              * }, true );
@@ -575,14 +550,7 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 // using angular.merge ensures that we won't set any values to undefined
                 angular.merge( scope.timeRange, newTimeRange );
 
-                // ensure that the visible timerange is never set to fractions of milliseconds
-                // Date objects already enforce this so we don't need to ensure this for timeRange.total
-                if ( typeof scope.timeRange.visible.start === 'number' ) {
-                    scope.timeRange.visible.start = Math.round( scope.timeRange.visible.start );
-                }
-                if ( typeof scope.timeRange.visible.end === 'number' ) {
-                    scope.timeRange.visible.end = Math.round( scope.timeRange.visible.end);
-                }
+                sanitizeTimeRange();
 
                 setActualTimeRange();
 
@@ -678,8 +646,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
              */
             scope.visibleTimeRangeMatchesTotal = function() {
                 if ( actualTimeRange.total.start === null || actualTimeRange.total.end === null ) return true;
-                return actualTimeRange.visible.start === actualTimeRange.total.start.getTime()
-                    && actualTimeRange.visible.end   === actualTimeRange.total.end.getTime();
+                return actualTimeRange.visible.start.getTime() === actualTimeRange.total.start.getTime()
+                    && actualTimeRange.visible.end.getTime()   === actualTimeRange.total.end.getTime();
             };
 
 
@@ -711,8 +679,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 if ( childScope.resetYZoom ) childScope.resetYZoom();
                 scope.setTimeRange({
                     visible: {
-                        start: actualTimeRange.total.start.getTime(),
-                        end: actualTimeRange.total.end.getTime()
+                        start: new Date( actualTimeRange.total.start ),
+                        end: new Date( actualTimeRange.total.end )
                     }
                 });
             };
@@ -740,8 +708,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
              * @param {Number} duration The duration of the new time range, in milliseconds.
              */
             scope.setTimeRangeByDuration = function( duration ) {
-                var currentRange = actualTimeRange.visible.end - actualTimeRange.visible.start;
-                var center = currentRange/2 + actualTimeRange.visible.start;
+                var currentRange = actualTimeRange.visible.end.getTime() - actualTimeRange.visible.start.getTime();
+                var center = currentRange/2 + actualTimeRange.visible.start.getTime();
 
                 // set the new range based on the old center point and the new duration
                 var start = center - duration/2;
@@ -754,8 +722,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                             end: new Date(end)
                         },
                         visible: {
-                            start: start,
-                            end: end
+                            start: new Date(start),
+                            end: new Date(end)
                         }
                     });
                 }
@@ -773,7 +741,7 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
              * @param {Number} ratio The ratio of the duration of the new range to the duration of the current visible time range.
              */
             scope.zoom = function( ratio ) {
-                scope.setTimeRangeByDuration( (actualTimeRange.visible.end - actualTimeRange.visible.start) * ratio );
+                scope.setTimeRangeByDuration( (actualTimeRange.visible.end.getTime() - actualTimeRange.visible.start.getTime()) * ratio );
             };
 
             /**
@@ -812,16 +780,16 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
              * @param {Number} ratio The ratio representing how far to pan. Mathematically, the ratio represents `(newStart - oldStart) / (oldEnd - oldStart)`
              */
             scope.pan = function( ratio ) {
-                var currentDuration = actualTimeRange.visible.end - actualTimeRange.visible.start;
-                var newStartTime = ratio * currentDuration + actualTimeRange.visible.start;
+                var currentDuration = actualTimeRange.visible.end.getTime() - actualTimeRange.visible.start.getTime();
+                var newStartTime = ratio * currentDuration + actualTimeRange.visible.start.getTime();
                 scope.setTimeRange({
                     total: {
                         start: new Date( newStartTime ),
                         end: new Date( newStartTime + currentDuration )
                     },
                     visible: {
-                        start: newStartTime,
-                        end: newStartTime + currentDuration
+                        start: new Date( newStartTime ),
+                        end: new Date( newStartTime + currentDuration )
                     }
                 });
             };
@@ -1048,6 +1016,20 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 scope.loadingProgress.percent = 0;
             }
 
+            function sanitizeTimeRange() {
+                // convert numbers or datestrings to date objects if necessary. The total and visible ranges should be stored as Dates.
+                var tr = scope.timeRange; // shorthand
+                var oldTimeRange = angular.copy( tr );
+                if ( typeof tr.total.start === 'number' || typeof tr.total.start === 'string' ) tr.total.start = new Date( tr.total.start );
+                if ( typeof tr.total.end === 'number' || typeof tr.total.end === 'string' ) tr.total.end = new Date( tr.total.end );
+                if ( typeof tr.visible.start === 'number' || typeof tr.visible.start === 'string' ) tr.visible.start = new Date( tr.visible.start );
+                if ( typeof tr.visible.end   === 'number' || typeof tr.visible.end === 'string' ) tr.visible.end = new Date( tr.visible.end );
+
+                if ( !angular.equals(oldTimeRange, tr) ) {
+                    console.warn( 'Lasp-highstock deprecation notice: timeRange values should be Date objects.', oldTimeRange );
+                }
+            }
+
             function setActualTimeRange() {
                 actualTimeRange = angular.copy( scope.timeRange );
 
@@ -1080,10 +1062,10 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
 
                 // if the visible range has nulls, set the value to whatever is defined in the total range
                 if ( actualTimeRange.visible.start === null && actualTimeRange.total.start !== null ) {
-                    actualTimeRange.visible.start = actualTimeRange.total.start.getTime();
+                    actualTimeRange.visible.start = new Date( actualTimeRange.total.start );
                 }
                 if ( actualTimeRange.visible.end === null && actualTimeRange.total.end !== null ) {
-                    actualTimeRange.visible.end = actualTimeRange.total.end.getTime();
+                    actualTimeRange.visible.end = new Date( actualTimeRange.total.end );
                 }
             }
 
@@ -1437,8 +1419,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 if ( scope.datasetType !== DatasetTypes.ANALOG && scope.datasetType !== DatasetTypes.DISCRETE ) {
                     console.error( 'Programmer error: downloadImage expected only for analog and discrete data' );
                 }
-                if ( filetype !== 'png' && filetype !== 'svg' ) {
-                    console.error( 'Programmer error: only png and svg are expected for downloadImage' );
+                if ( filetype !== 'png' && filetype !== 'svg' && filetype !== 'pdf' ) {
+                    console.error( 'Programmer error: only png, svg, and pdf are expected for downloadImage' );
                 }
                 // let the child scope handle the downloading of the image, since the specifics may vary based on what plot type this is
                 // as of this comment, only a highcharts plot should handle this, but we may add more plot types that can generate image files
@@ -1578,7 +1560,9 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 }
                 //cancel any outstanding requests
                 cancelling = true;
-                scope.cancel.resolve();
+                if ( typeof scope.cancel !== 'undefined' ) {
+                    scope.cancel.resolve();
+                }
             });
 
             // the child scope can change the visible time range by emitting this event
@@ -1591,8 +1575,8 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 // In that case, the below call to setTimeRange will do nothing, because there will be no change to timeRange.visible
                 scope.setTimeRange({
                     visible: {
-                        start: min,
-                        end: max
+                        start: new Date( min ),
+                        end: new Date( max )
                     }
                 });
 
@@ -1625,7 +1609,7 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                          */
                         if ( datum[1] === null ) continue;
                         // if the timestamp of a data point is within the currently viewed range, we've seen enough
-                        if ( datum[0] >= scope.timeRange.visible.start && datum[0] <= scope.timeRange.visible.end ) {
+                        if ( datum[0] >= scope.timeRange.visible.start.getTime() && datum[0] <= scope.timeRange.visible.end.getTime() ) {
                             scope.dataExistsInCurrentRange = true;
                             return;
                         }
@@ -1638,19 +1622,6 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                 if ( typeof clearData === 'undefined' ) clearData = false;
                 if ( childScope.updateTooltip ) childScope.updateTooltip( clearData );
             };
-
-            /*
-            * reset the error on type change, we can't apply ng-change on the select
-            * element since it will fire even if the old filter is equal to the new one
-            * so we are forced to use a watcher which can apply our custom logic.
-            */
-            scope.$watch( 'filterSelection.type', function( oldFilter, newFilter ) {
-                if ( oldFilter === newFilter ) {
-                    return;
-                }
-                Logger.log( '$watch: filterSelection.type' );
-                scope.filterError = '';
-            });
 
             scope.$watch( 'datasets', function( newDatasets, oldDatasets ) {
                 if ( newDatasets === oldDatasets ) {
@@ -1693,35 +1664,21 @@ function plotFrame( $uibModal, $window, $timeout, $q, constants, latis, ChartDat
                     gapThreshold: scope.menuOptions.dataDisplay.gaps.threshold
                 };
 
-                scope.filterSelection.active = false;
-
                 if ( scope.datasets.length > 0 ) {
-                    // the built-in filter controls alter filters for all datasets simultaneously, so check just one dataset for the presence of active filters
+                    // The built-in filter controls alter filters for all datasets simultaneously.
+                    // Copy the filter settings for the first dataset we find that has filters enabled.
                     var d0filters = scope.datasets[0].filters;
+                    if ( typeof d0filters === 'undefined' ) { return; }
 
-                    if ( d0filters.minmax.enabled ) {
-                        scope.filterSelection.active = true;
-                        scope.filterSelection.type = 'minmax';
-                        scope.filterSelection.minmax = {
-                            enabled: true,
-                            min: d0filters.minmax.min,
-                            max: d0filters.minmax.max
-                        };
-
-                    } else if ( d0filters.delta.enabled ) {
-                        scope.filterSelection.active = true;
-                        scope.filterSelection.type = 'delta';
-                        scope.filterSelection.delta = {
-                            enabled: true,
-                            value: d0filters.delta.value
-                        };
-
-                    } else if ( d0filters.change.enabled ) {
-                        scope.filterSelection.active = true;
-                        scope.filterSelection.type = 'change';
-                        scope.filterSelection.change = {
-                            enabled: true
-                        };
+                    var datasetWithFiltersEnabled = scope.datasets.find( function(ds) {
+                        return ds.filters.minmax.enabled || ds.filters.delta.enabled || ds.filters.change.enabled;
+                    });
+                    if ( datasetWithFiltersEnabled !== undefined ) {
+                        scope.filterSelection = angular.copy( datasetWithFiltersEnabled.filters );
+                    } else {
+                        // If no datasets have filters, initialize the filter controls to the filter settings
+                        // of the first dataset, which will accurately set the controls to have no filters enabled.
+                        scope.filterSelection = angular.copy( d0filters );
                     }
                 }
             }
@@ -2156,12 +2113,14 @@ function highchart( Chart, ChartData, constants, DatasetTypes, LimitTypes, Color
                 scope.chart.tooltipDecimalLengthReset = true;
 
                 // if start/end are null, the axis will show the max range
+                var visibleStartTime = scope.timeRange.visible.start === null ? null : scope.timeRange.visible.start.getTime();
+                var visibleEndTime = scope.timeRange.visible.end === null ? null : scope.timeRange.visible.end.getTime();
                 var totalStartTime = scope.timeRange.total.start === null ? null : scope.timeRange.total.start.getTime();
                 var totalEndTime = scope.timeRange.total.end === null ? null : scope.timeRange.total.end.getTime();
 
                 scope.chart.setExtremes(
-                    scope.timeRange.visible.start,
-                    scope.timeRange.visible.end,
+                    visibleStartTime,
+                    visibleEndTime,
                     totalStartTime,
                     totalEndTime,
                     redraw
@@ -2475,7 +2434,7 @@ function highchart( Chart, ChartData, constants, DatasetTypes, LimitTypes, Color
                     if ( typeof userOptions !== 'undefined' ) {
                         var chartDataIndex = userOptions.chartDataIndex;
                         if ( typeof chartDataIndex !== 'undefined' ) {
-                            scope.chart.setSeriesColorZones( i, chartDataZones[chartDataIndex], false );
+                            scope.chart.setSeriesColorZones( series.index, chartDataZones[chartDataIndex], false );
                         }
                     }
                 });
@@ -3948,7 +3907,7 @@ function colorThemesFactory () {
 
     ColorThemes.themes = {
         light: {
-            colors: ['#2885e0', '#383838', '#d7792a', '#4b32c9', '#4eb7a7'], // use a darker color scheme than the default
+            colors: ['#2885e0', '#383838', '#d7792a', '#4b32c9', '#4eb7a7', "#db0a5b", "#806c00", "#008000", "#f45b5b", "#b381b3"], // use a darker color scheme than the default
             backgroundColor: '#ffffff',
             selectionMarkerFill: 'rgba(69,114,167,0.25)',
             axis: {
@@ -3998,7 +3957,7 @@ function colorThemesFactory () {
             }
         },
         dark: {
-            colors: ['#74b7fa', '#c1c1c1', '#f08e3e', '#ac9ef4', '#65e1ce'],
+            colors: ['#74b7fa', '#c1c1c1', '#f08e3e', '#ac9ef4', '#65e1ce', "#f15c80", "#9f6b3f", "#6b8e23", "#f45b5b", "#e4d354"],
             backgroundColor: '#000000',
             selectionMarkerFill: 'rgba(88,133,186,0.25)',
             axis: {
@@ -4081,6 +4040,7 @@ function colorThemesFactory () {
 angular.module( 'laspChart' ).factory( 'ColorThemes', [ colorThemesFactory ]);
 
 })(); // End IIFE
+
 'use strict';
 
 angular.module( 'laspChart' ).factory( 'HighstockOptions', [
@@ -4198,6 +4158,7 @@ angular.module( 'laspChart' ).factory( 'HighstockOptions', [
                     enabled: true
                 },
                 navigator: {
+                    adaptToUpdatedData: false,
                     xAxis: {
                         labels: {}
                     }
@@ -4463,10 +4424,11 @@ function highstockAdapter( constants, LimitTypes, HighstockOptions, ColorThemes,
      * @property {string} color The color of the series in hex notation
      * @property {string} type The type of the series, i.e. 'line' or 'arearange'
      */
-    function ChartSeries( name, type, color, userOptions ) {
+    function ChartSeries( name, type, color, index, userOptions ) {
         this.name = name;
         this.type = type;
         this.color = color;
+        this.index = index;
         this.userOptions = userOptions;
     }
 
@@ -4640,7 +4602,7 @@ function highstockAdapter( constants, LimitTypes, HighstockOptions, ColorThemes,
             redraw = ( typeof redraw === 'undefined' ) ? true : redraw;
             url = ( typeof url === 'undefined' ) ? '' : url;
             Logger.log('Adding Series to Chart: REDRAW? ' + redraw + ' seriesType? ' + seriesType );
-            var newSeries = this.chart.addSeries({
+            this.chart.addSeries({
                 type: seriesType,
                 name: name,
                 data: data,
@@ -4664,7 +4626,7 @@ function highstockAdapter( constants, LimitTypes, HighstockOptions, ColorThemes,
             }
             this.chart.series.forEach( function(series, i) {
                 if ( !seriesIsInNavigator.call(this,series) && !seriesIsEvent.call(this,series) ) {
-                    allSeries.push( new ChartSeries(series.name, series.type, series.color, series.userOptions) );
+                    allSeries.push( new ChartSeries(series.name, series.type, series.color, i, series.userOptions) );
                 }
             });
             return allSeries;
@@ -5521,11 +5483,16 @@ function highstockAdapter( constants, LimitTypes, HighstockOptions, ColorThemes,
             var mime = '';
             if ( filetype === 'png' ) mime = 'image/png';
             else if ( filetype === 'svg' ) mime = 'image/svg+xml';
-            this.chart.exportChartLocal({
-                filename: filename,
-                type: mime,
-                sourceWidth: this.chart.container.clientWidth
-            });
+            else if ( filetype === 'pdf' ) mime = 'application/pdf';
+            try {
+                this.chart.exportChartLocal({
+                    filename: filename,
+                    type: mime,
+                    sourceWidth: this.chart.container.clientWidth
+                });
+            } catch ( e ) {
+                alert( 'Sorry, your browser does not support this feature. Try using Chrome or Firefox.' );
+            }
         },
 
         /**
@@ -5610,7 +5577,6 @@ function latisFactory( $http, $q, $document, $window ) {
         // > as a global string replace. Note that using replace() with a global flag is
         // > much faster than split/join (at least in Chrome), so consider replace() if
         // > this function is ever churning through large amounts of strings
-        //
         //
         return s.split('&').join('&amp;').split('<').join('&lt;').split('"').join('&quot;');
     }
@@ -5885,6 +5851,6 @@ angular.module("laspChart").run(["$templateCache", function($templateCache) {$te
 $templateCache.put("event_table/event_table.html","<div class=\"event-table frame-contents\"><div class=\"table-container\" ng-style=\"tableStyle\"><table><tbody><tr ng-repeat=\"(index, row) in tableData\"><td width=\"1\">{{row[0]}}</td><td>{{row[1]}}</td></tr></tbody></table></div></div>");
 $templateCache.put("events_modal/events_modal.html","<div class=\"modal-body events-modal\"><h3>Event details</h3><p><b>Type:</b> {{$ctrl.eventDetails.type.label}} <span ng-if=\"$ctrl.eventDetails.type.label.toLowerCase() !== $ctrl.eventDetails.type.name.toLowerCase()\">({{$ctrl.eventDetails.type.name}})</span></p><p ng-if=\"$ctrl.eventDetails.end\"><b>Start:</b> {{$ctrl.eventDetails.startFormatted}}<br><b>End:</b> {{$ctrl.eventDetails.endFormatted}}</p><p ng-if=\"!$ctrl.eventDetails.end\"><b>Time:</b> {{$ctrl.eventDetails.startFormatted}}</p><br><h4>Properties</h4><p ng-repeat=\"(key, value) in $ctrl.eventDetails.info\" ng-if=\"value.length > 0\"><b>{{key}}:</b> {{value}}</p></div>");
 $templateCache.put("metadata_modal/metadata_modal.html","<metadata-display></metadata-display>");
-$templateCache.put("plot_frame/header_button_group.html","<div class=\"ui-buttons-zoom fixed-zoom-group button-group dropdown-group\"><div class=\"header-button timerange-btn\" title=\"Set time range\" ng-click=\"openTimeRangeModal()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small zoom-in-btn\" title=\"Zoom in\" ng-click=\"zoomIn()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small zoom-out-btn\" title=\"Zoom out\" ng-click=\"zoomOut()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small pan-left-btn\" title=\"Pan left\" ng-click=\"panLeft()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small pan-right-btn\" title=\"Pan right\" ng-click=\"panRight()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small undo-zoom\" title=\"Undo zoom\" ng-click=\"undoZoom()\" ng-disabled=\"history.length < 1 || loading\"></div><div class=\"header-button header-button-small zoom-menu\" title=\"More zoom levels\" ng-click=\"toggleZoomMenu($event)\" ng-disabled=\"loading\"></div><div ng-click=\"$event.clickedZoomMenu = true\" class=\"dropdown\"><div ng-show=\"zoomMenuOpen\"><ul><li ng-click=\"setTimeRangeByDuration(14400000)\">4 Hours</li><li ng-click=\"setTimeRangeByDuration(28800000)\">8 Hours</li><li ng-click=\"setTimeRangeByDuration(43200000)\">12 Hours</li><li ng-click=\"setTimeRangeByDuration(86400000)\">24 Hours</li><li ng-click=\"setTimeRangeByDuration(172800000)\">48 Hours</li></ul></div></div></div><div class=\"ui-buttons-resolution header-button increase-resolution-btn\" ng-show=\"!dataError && !fullResolution && datasetType === DatasetTypes.ANALOG\" title=\"Increase data resolution\" ng-class=\"{\'disabled\': !increaseResolutionButtonIsEnabled() }\" ng-click=\"increaseResolution()\"></div><div class=\"ui-buttons-filter filter-button-group button-group dropdown-group\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\"><div class=\"header-button btn-padding\" ng-class=\"{\'filter-btn\': !filterSelection.active, \'active-filter-btn\': filterSelection.active}\" title=\"Filter data\" ng-click=\"toggleFilterMenu($event)\" ng-disabled=\"loading\"></div><div ng-click=\"$event.clickedFilterMenu = true\" class=\"dropdown\" ng-if=\"filterMenuOpen\"><div class=\"filter-options-group\"><label style=\"width: 100%; text-align: left;\">Filter:<select ng-model=\"filterSelection.type\"><option value=\"none\">None</option><option value=\"delta\">Delta</option><option value=\"minmax\">Min/Max</option><option value=\"change\">On change</option></select></label><div class=\"filter-options\"><p ng-show=\"filterSelection.type===\'change\'\">This filter only shows data points that change from the previous value.</p><label>Options:</label><div class=\"filter-opt\" ng-show=\"filterSelection.type===\'none\'\"><p class=\"alert-warning\">Data will not be filtered</p></div><div class=\"filter-opt\" ng-show=\"filterSelection.type===\'delta\'\"><label>Max Change:<br><input type=\"number\" ng-model=\"filterSelection.delta.value\"></label></div><div class=\"filter-opt\" ng-show=\"filterSelection.type===\'minmax\'\"><label>Min: <input type=\"number\" ng-model=\"filterSelection.minmax.min\"></label></div><div class=\"filter-opt\" ng-show=\"filterSelection.type===\'minmax\'\"><label>Max: <input type=\"number\" ng-model=\"filterSelection.minmax.max\"></label></div><div class=\"filter-opt\" ng-show=\"filterSelection.type===\'change\'\">(No options)</div></div><p ng-if=\"filterError!==\'\'\" class=\"alert-danger\">{{filterError}}</p><button ng-click=\"addFilter()\" class=\"btn btn-primary\">Update Filter</button></div></div></div><div class=\"ui-buttons-info header-button metadata-btn\" title=\"Show metadata\" ng-click=\"openInfoModal()\"></div><div class=\"ui-buttons-download download-button-group button-group dropdown-group\" ng-show=\"downloadButtonEnabled()\"><div class=\"header-button download-btn\" title=\"Download data/image\" ng-click=\"toggleDownloadMenu($event)\"></div><div class=\"dropdown\" ng-if=\"downloadMenuOpen\"><ul><li ng-click=\"downloadCSV()\">CSV data</li><li ng-click=\"downloadImage(\'svg\')\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\">SVG image</li><li ng-click=\"downloadImage(\'png\')\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\">PNG image</li></ul></div></div>");
+$templateCache.put("plot_frame/header_button_group.html","<div class=\"ui-buttons-zoom fixed-zoom-group button-group dropdown-group\"><div class=\"header-button timerange-btn\" title=\"Set time range\" ng-click=\"openTimeRangeModal()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small zoom-in-btn\" title=\"Zoom in\" ng-click=\"zoomIn()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small zoom-out-btn\" title=\"Zoom out\" ng-click=\"zoomOut()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small pan-left-btn\" title=\"Pan left\" ng-click=\"panLeft()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small pan-right-btn\" title=\"Pan right\" ng-click=\"panRight()\" ng-disabled=\"loading\"></div><div class=\"header-button header-button-small undo-zoom\" title=\"Undo zoom\" ng-click=\"undoZoom()\" ng-disabled=\"history.length < 1 || loading\"></div><div class=\"header-button header-button-small zoom-menu\" title=\"More zoom levels\" ng-click=\"toggleZoomMenu($event)\" ng-disabled=\"loading\"></div><div ng-click=\"$event.clickedZoomMenu = true\" class=\"dropdown\"><div ng-show=\"zoomMenuOpen\"><ul><li ng-click=\"setTimeRangeByDuration(14400000)\">4 Hours</li><li ng-click=\"setTimeRangeByDuration(28800000)\">8 Hours</li><li ng-click=\"setTimeRangeByDuration(43200000)\">12 Hours</li><li ng-click=\"setTimeRangeByDuration(86400000)\">24 Hours</li><li ng-click=\"setTimeRangeByDuration(172800000)\">48 Hours</li></ul></div></div></div><div class=\"ui-buttons-resolution header-button increase-resolution-btn\" ng-show=\"!dataError && !fullResolution && datasetType === DatasetTypes.ANALOG\" title=\"Increase data resolution\" ng-class=\"{\'disabled\': !increaseResolutionButtonIsEnabled() }\" ng-click=\"increaseResolution()\"></div><div class=\"ui-buttons-filter filter-button-group button-group dropdown-group\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\"><div class=\"header-button btn-padding\" ng-class=\"{\'filter-btn\': !filtersAreActive(), \'active-filter-btn\': filtersAreActive()}\" title=\"Filter data\" ng-click=\"toggleFilterMenu($event)\" ng-disabled=\"loading\"></div><div ng-click=\"$event.clickedFilterMenu = true\" class=\"dropdown\" ng-if=\"filterMenuOpen\"><div class=\"filter-options-group\"><p ng-if=\"datasets.length > 1\" class=\"overplot-filter-note\">These settings will apply to all overplotted items.</p><label ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG}\" title=\"If two adjacent points differ by more than a given value, the latter point will be removed\"><input type=\"checkbox\" ng-model=\"filterSelection.delta.enabled\" ng-disabled=\"datasetType !== DatasetTypes.ANALOG\">Delta</label><div ng-if=\"filterSelection.delta.enabled\" class=\"filter-details\"><label>Max change:<br><input type=\"number\" ng-model=\"filterSelection.delta.value\"></label></div><label ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG}\" title=\"Any points which fall outside of the defined min/max bounds will be removed\"><input type=\"checkbox\" ng-model=\"filterSelection.minmax.enabled\" ng-disabled=\"datasetType !== DatasetTypes.ANALOG\">Min/max</label><div ng-if=\"filterSelection.minmax.enabled\" class=\"filter-details\"><label>Min:<br><input type=\"number\" ng-model=\"filterSelection.minmax.min\"></label> <label>Max:<br><input type=\"number\" ng-model=\"filterSelection.minmax.max\"></label></div><label title=\"Points which have the same value as the preceding point will be removed\"><input type=\"checkbox\" ng-model=\"filterSelection.change.enabled\">On change</label><p class=\"text-danger\" ng-if=\"filterError\">{{filterError}}</p><button class=\"btn btn-primary\" ng-click=\"applyFilters()\">Apply</button></div></div></div><div class=\"ui-buttons-info header-button metadata-btn\" title=\"Show metadata\" ng-click=\"openInfoModal()\"></div><div class=\"ui-buttons-download download-button-group button-group dropdown-group\" ng-show=\"downloadButtonEnabled()\"><div class=\"header-button download-btn\" title=\"Download data/image\" ng-click=\"toggleDownloadMenu($event)\"></div><div class=\"dropdown\" ng-if=\"downloadMenuOpen\"><ul><li ng-click=\"downloadCSV()\">CSV data</li><li ng-click=\"downloadImage(\'svg\')\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\">SVG image</li><li ng-click=\"downloadImage(\'png\')\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\">PNG image</li><li ng-click=\"downloadImage(\'pdf\')\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\">PDF</li></ul></div></div>");
 $templateCache.put("plot_frame/plot_frame.html","<div class=\"unselectable\" ng-class=\"{\'collapsed\': uiOptions.collapsed, \'color-theme-light\': uiOptions.colorTheme == \'light\', \'color-theme-dark\': uiOptions.colorTheme == \'dark\' }\" ng-click=\"closeAll()\"><div class=\"plot-header flex-container-row\" ng-class=\"{\'use-global-settings\': menuOptions.menuDisabled}\" sv-handle=\"\"><div class=\"plot-menu-btn flex-nogrow\" ng-hide=\"uiOptions.collapsed\" ng-click=\"togglePlotMenu($event)\"></div><div class=\"chart-title flex-container-row flex\" title=\"{{name}} - {{desc}}\" ng-hide=\"error==\'badFormat\'\"><span class=\"truncate\">{{name}}</span> <span class=\"chart-desc truncate flex\">{{desc}}</span></div><span class=\"noti-bubble flex\" ng-if=\"redViolations > 0\" title=\"{{redViolations}} {{redViolations === 1 ? \'point\' : \'points\'}} within red limit areas\">{{redViolations}}</span> <span class=\"noti-bubble yellow flex\" ng-if=\"yellowViolations > 0\" title=\"{{yellowViolations}} {{yellowViolations === 1 ? \'point\' : \'points\'}} within yellow limit areas\">{{yellowViolations}}</span><div class=\"flex-nogrow header-button-group\" ng-mousedown=\"$event.stopPropagation()\"><div header-button-group=\"\" class=\"button-group\" ng-show=\"elementWidth > 620 && !uiOptions.collapsed\"></div><div class=\"header-button plusminus-btn\" ng-class=\"{\'collapsed\': uiOptions.collapsed}\" ng-click=\"setUiOptions({collapsed: !uiOptions.collapsed})\" title=\"Toggle plot collapse\"></div><div class=\"header-button close-btn\" ng-click=\"removePlot()\" title=\"Remove plot\"></div></div></div><div plot-menu=\"\" class=\"plot-menu\" open=\"plotMenuOpen\" menu-btn=\"plotMenuBtn\"><ul><li class=\"ui-menu-disable dark-menu\"><label><span>{{uiOptions.disableMenuLabelText}}</span> <input type=\"checkbox\" ng-checked=\"menuOptions.menuDisabled\" ng-click=\"setMenuOptions({menuDisabled: !menuOptions.menuDisabled})\"></label></li><li class=\"ui-menu-datasets\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE && (plotList || showChangeDatasetsMenuItem())\"><label><span>Datasets</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-datasets-add\" ng-show=\"showChangeDatasetsMenuItem()\"><label ng-click=\"onChangeDatasetsClicked()\"><span>Add/remove/change datasets&hellip;</span></label></li><li class=\"ui-menu-datasets-split\" ng-show=\"plotList\" ng-class=\"{disabled: !isOverplot()}\"><label ng-click=\"splitDatasets()\"><span>Split into separate plots</span></label></li><li class=\"ui-menu-datasets-combine\" ng-show=\"plotList\" ng-class=\"{\'disabled\': !plotList.some( canCombine )}\"><label><span>Combine plot with</span><div class=\"arrow\"></div></label><ul class=\"plot-list scrolling-menu\"><li ng-repeat=\"(i, plot) in plotList\" ng-if=\"canCombine( plot )\"><label title=\"{{plot.plotObj.name}} &#013; {{plot.plotObj.desc}}\" ng-click=\"absorbDatasetsOf( plot )\"><span><span>{{plot.plotObj.name}}</span><br><span class=\"desc\">{{plot.plotObj.desc}}</span></span></label></li></ul></li></ul></li><li class=\"ui-menu-overplot\" ng-class=\"{disabled: !isOverplot()}\"><label><span>Overplot settings</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-limits-selection\" ng-class=\"{disabled: !enableLimitsSelection || !menuOptions.view.limits}\" title=\"{{menuOptions.view.limits ? \'\' : \'Limits are currently hidden. Turn on limits via [View->Limits] to enable this option.\'}}\"><label><span>Show limits for:</span><div class=\"arrow\"></div></label><ul class=\"plot-list scrolling-menu dataset-selection\"><li ng-repeat=\"(i, ds) in datasets\"><label title=\"{{ds.name}} &#013; {{ds.desc}}\"><span><span>{{ds.name}}</span><br><span class=\"desc\">{{ds.desc}}</span> <input type=\"radio\" ng-checked=\"menuOptions.selectedLimitsIndex === i\" ng-click=\"setMenuOptions({selectedLimitsIndex:i})\"></span></label></li></ul></li><li class=\"ui-menu-xaxis-selection\" ng-class=\"{disabled: !hasOffsetDatasets()}\"><label><span>Show x-axis for:</span><div class=\"arrow\"></div></label><ul class=\"plot-list scrolling-menu dataset-selection\"><li ng-repeat=\"(i, ds) in datasets\"><label title=\"{{ds.name}} &#013; {{ds.desc}}\"><span><span>{{ds.name}}</span><br><span class=\"desc\">Offset: {{ds.offset ? ds.offset.replace(\' \',\'\') : \'none\'}}</span> <input type=\"radio\" ng-checked=\"menuOptions.selectedXAxisIndex === i\" ng-click=\"setMenuOptions({selectedXAxisIndex:i})\"></span></label></li></ul></li></ul></li><li class=\"separator\"></li><li class=\"ui-menu-view\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\"><label><span>View</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-view-navigator\"><label><span>Navigator</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.navigator\" ng-click=\"setMenuOptions({view:{navigator:!menuOptions.view.navigator}})\"></label></li><li class=\"ui-menu-view-scrollbar\"><label><span>Scroll bar</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.scrollbar\" ng-click=\"setMenuOptions({view:{scrollbar:!menuOptions.view.scrollbar}})\"></label></li><li class=\"ui-menu-view-limits\" ng-class=\"{\'disabled\': datasetType === DatasetTypes.DISCRETE}\"><label><span>Limit areas</span> <input type=\"checkbox\" ng-disabled=\"datasetType === DatasetTypes.DISCRETE\" ng-checked=\"menuOptions.view.limits\" ng-click=\"setMenuOptions({view:{limits:!menuOptions.view.limits}})\"></label></li><li class=\"ui-menu-view-limit-violation-flags\"><label><span>Limit violation coloring</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.limitViolationFlags\" ng-click=\"setMenuOptions({view:{limitViolationFlags:!menuOptions.view.limitViolationFlags}})\"></label></li><li class=\"ui-menu-view-events\" ng-class=\"{\'disabled\': !uiOptions.eventsURL}\"><label><span>Events</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.events\" ng-click=\"setMenuOptions({view:{events:!menuOptions.view.events}})\" ng-disabled=\"!uiOptions.eventsURL\"></label></li><li class=\"ui-menu-view-eventtypes\" ng-class=\"{disabled: !menuOptions.view.events}\"><label><span>Event types</span><div class=\"arrow\"></div></label><ul class=\"scrolling-menu\"><li ng-repeat=\"(i, type) in eventsData.types\"><label title=\"{{type.label}}\"><span class=\"hide-overflow\">{{type.label}}</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.eventTypes.indexOf(type.id) >= 0\" ng-click=\"toggleEventType(type.id)\"></label></li></ul></li><li class=\"ui-menu-view-legend\"><label><span>Legend</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.legend\" ng-click=\"setMenuOptions({view:{legend:!menuOptions.view.legend}})\"></label></li><li class=\"ui-menu-view-horizontal-crosshair\"><label><span>Horizontal crosshair</span> <input type=\"checkbox\" ng-checked=\"menuOptions.view.horizontalCrosshair\" ng-click=\"setMenuOptions({view:{horizontalCrosshair:!menuOptions.view.horizontalCrosshair}})\"></label></li></ul></li><li class=\"ui-menu-yaxis\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\"><label><span>Y-axis</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-yaxis-scaling\"><label><span>Scaling</span><div class=\"arrow\"></div></label><ul><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG}\" class=\"ui-menu-yaxis-scaling-auto\"><label><span>Auto</span> <input type=\"radio\" ng-checked=\"menuOptions.yAxis.scaling.type == \'auto\'\" ng-click=\"setMenuOptions({yAxis:{scaling:{type:\'auto\'}}})\"></label></li><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG || menuOptions.selectedLimitsIndex == undefined || metadata[menuOptions.selectedLimitsIndex].Limits.Yellow.Low == undefined}\" class=\"ui-menu-yaxis-scaling-yellow-limits\"><label><span>Scale to yellow limits</span> <input type=\"radio\" ng-disabled=\"menuOptions.selectedLimitsIndex == undefined || metadata[menuOptions.selectedLimitsIndex].Limits.Yellow.Low == undefined\" ng-checked=\"menuOptions.yAxis.scaling.type == \'yellow\'\" ng-click=\"setMenuOptions({yAxis:{scaling:{type:\'yellow\'}}})\"></label></li><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG || menuOptions.selectedLimitsIndex == undefined || metadata[menuOptions.selectedLimitsIndex].Limits.Red.Low == undefined}\" class=\"ui-menu-yaxis-scaling-red-limits\"><label><span>Scale to red limits</span> <input type=\"radio\" ng-disabled=\"menuOptions.selectedLimitsIndex == undefined || metadata[menuOptions.selectedLimitsIndex].Limits.Red.Low == undefined\" ng-checked=\"menuOptions.yAxis.scaling.type == \'red\'\" ng-click=\"setMenuOptions({yAxis:{scaling:{type:\'red\'}}})\"></label></li><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.ANALOG}\" class=\"ui-menu-yaxis-scaling-custom\"><label><span>Custom Scaling</span> <input type=\"radio\" ng-disabled=\"datasetType === DatasetTypes.DISCRETE\" ng-checked=\"menuOptions.yAxis.scaling.type == \'custom\'\" ng-click=\"setMenuOptions({yAxis:{scaling:{type:\'custom\'}}})\"></label></li><li ng-class=\"{ \'disabled\': menuOptions.yAxis.scaling.type !==\'custom\' }\" class=\"ui-menu-yaxis-scaling-custom-inputs\"><label><div class=\"half-label\"><span>Low:</span> <input style=\"width: 4em; max-width: 50%\" type=\"number\" ng-model=\"menuControls.yAxisScalingLow\"></div><div class=\"half-label\"><span>High:</span> <input style=\"width: 4em; max-width: 50%\" type=\"number\" ng-model=\"menuControls.yAxisScalingHigh\"></div></label></li><li ng-class=\"{ \'disabled\': menuOptions.yAxis.scaling.type !== \'custom\' }\"><label class=\"y-axis-scaling\"><div class=\"text-danger-light scaling-error\">{{ yAxisScalingError }}</div><button class=\"btn btn-primary\" ng-click=\"setMenuOptions({yAxis:{scaling:{low:menuControls.yAxisScalingLow,high:menuControls.yAxisScalingHigh}}})\">Apply</button></label></li></ul></li><li class=\"ui-menu-yaxis-labels\"><label><span>Labels</span><div class=\"arrow\"></div></label><ul><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.DISCRETE}\"><label><span>Hide unused discrete labels</span> <input type=\"checkbox\" ng-checked=\"menuOptions.yAxis.labels.hideUnusedDiscreteLabels\" ng-click=\"setMenuOptions({yAxis:{labels:{hideUnusedDiscreteLabels: !menuOptions.yAxis.labels.hideUnusedDiscreteLabels}}})\" ng-disabled=\"datasetType !== DatasetTypes.DISCRETE\"></label></li><li ng-class=\"{\'disabled\': datasetType !== DatasetTypes.DISCRETE || !discreteFormattersEnabled}\"><label><span>Show numeric discrete values</span> <input type=\"checkbox\" ng-checked=\"menuOptions.yAxis.labels.showNumericDiscreteValues\" ng-click=\"setMenuOptions({yAxis:{labels:{showNumericDiscreteValues: !menuOptions.yAxis.labels.showNumericDiscreteValues}}})\" ng-disabled=\"datasetType !== DatasetTypes.DISCRETE || !discreteFormattersEnabled\"></label></li></ul></li></ul></li><li class=\"ui-menu-date-formatting\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\"><label><span ng-if=\"datasetType !== DatasetTypes.EVENT_TABLE\">X-axis labels</span> <span ng-if=\"datasetType === DatasetTypes.EVENT_TABLE\">Date formatting</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-date-formatting-auto\"><label><span>Auto</span> <input type=\"radio\" ng-checked=\"menuOptions.timeLabels.format === \'auto\'\" ng-click=\"setMenuOptions({timeLabels:{format:\'auto\'}})\"></label></li><li class=\"ui-menu-date-formatting-t0\"><label><span>Seconds since t<sub>0</sub></span> <input type=\"radio\" ng-checked=\"menuOptions.timeLabels.format === \'secondsSinceT0\'\" ng-click=\"setMenuOptions({timeLabels:{format:\'secondsSinceT0\'}})\"></label></li><li class=\"ui-menu-date-formatting-raw\"><label><span>Raw</span> <input type=\"radio\" ng-checked=\"menuOptions.timeLabels.format === \'raw\'\" ng-click=\"setMenuOptions({timeLabels:{format:\'raw\'}})\"></label></li></ul></li><li class=\"ui-menu-data-display\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\"><label><span>Data display</span><div class=\"arrow\"></div></label><ul><li class=\"ui-menu-data-display-series\"><label><span>Display series as</span><div class=\"arrow\"></div></label><ul><li><label><span>Lines only</span> <input type=\"radio\" ng-checked=\"menuOptions.dataDisplay.seriesDisplayMode === \'lines\'\" ng-click=\"setMenuOptions({dataDisplay:{seriesDisplayMode:\'lines\'}})\"></label></li><li><label><span>Points only</span> <input type=\"radio\" ng-checked=\"menuOptions.dataDisplay.seriesDisplayMode === \'points\'\" ng-click=\"setMenuOptions({dataDisplay:{seriesDisplayMode:\'points\'}})\"></label></li><li><label><span>Lines and points</span> <input type=\"radio\" ng-checked=\"menuOptions.dataDisplay.seriesDisplayMode === \'linesAndPoints\'\" ng-click=\"setMenuOptions({dataDisplay:{seriesDisplayMode:\'linesAndPoints\'}})\"></label></li></ul></li><li class=\"ui-menu-data-display-gaps\"><label><span>Gaps</span><div class=\"arrow\"></div></label><ul><li><label title=\"Visualize gaps in data as breaks in the line chart\"><span>Allow gaps</span> <input type=\"checkbox\" ng-checked=\"menuOptions.dataDisplay.gaps.enabled\" ng-click=\"setMenuOptions({dataDisplay:{gaps:{enabled: !menuOptions.dataDisplay.gaps.enabled}}})\"></label></li><li ng-class=\"{ \'disabled\': !menuOptions.dataDisplay.gaps.enabled }\"><label title=\"For periods of data with an even cadence, if at least [threshold] consecutive points are missing, a gap will be shown\"><span>Threshold ratio</span> <input class=\"gap-threshold-input\" type=\"number\" min=\"1\" ng-model=\"menuControls.gapThreshold\"></label></li><li ng-class=\"{ \'disabled\': !menuOptions.dataDisplay.gaps.enabled }\"><label><button class=\"btn btn-primary\" ng-click=\"setMenuOptions({dataDisplay:{gaps:{threshold: menuControls.gapThreshold}}})\">Apply</button></label></li></ul></li><li class=\"ui-menu-data-display-minmax-range\" ng-class=\"{\'disabled\': datasetType === DatasetTypes.DISCRETE}\"><label><span>Show min/max range</span> <input type=\"checkbox\" ng-checked=\"menuOptions.dataDisplay.showMinMax\" ng-click=\"setMenuOptions({dataDisplay:{showMinMax: !menuOptions.dataDisplay.showMinMax}})\" ng-disabled=\"datasetType === DatasetTypes.DISCRETE\"></label></li><li class=\"ui-menu-data-display-data-grouping\"><label title=\"Automatic averaging and min/max calculations when more points are shown than can fit on the screen\"><span>Data grouping</span> <input type=\"checkbox\" ng-checked=\"menuOptions.dataDisplay.dataGrouping\" ng-click=\"setMenuOptions({dataDisplay:{dataGrouping: !menuOptions.dataDisplay.dataGrouping}})\" ng-disabled=\"datasetType === DatasetTypes.DISCRETE\"></label></li></ul></li><li class=\"ui-menu-zoom-mode\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\" ng-show=\"datasetType !== DatasetTypes.EVENT_TABLE\"><label><span>Zoom mode</span><div class=\"arrow\"></div></label><ul><li><label title=\"Drag the mouse to zoom in on a range of x-axis values\"><span>X only</span> <input type=\"radio\" ng-checked=\"menuOptions.zoomMode === \'x\'\" ng-click=\"setMenuOptions({zoomMode:\'x\'})\"></label></li><li><label title=\"Drag the mouse to zoom in on a specific rectangle\"><span>X and Y</span> <input type=\"radio\" ng-checked=\"menuOptions.zoomMode === \'xy\'\" ng-click=\"setMenuOptions({zoomMode:\'xy\'})\"></label></li></ul></li><li class=\"ui-menu-color-theme\" ng-class=\"{\'disabled\': menuOptions.menuDisabled}\"><label><span>Color theme</span><div class=\"arrow\"></div></label><ul><li><label><span>Light</span> <input type=\"radio\" ng-checked=\"uiOptions.colorTheme === \'light\'\" ng-click=\"setUiOptions({colorTheme: \'light\'})\"></label></li><li><label><span>Dark</span> <input type=\"radio\" ng-checked=\"uiOptions.colorTheme === \'dark\'\" ng-click=\"setUiOptions({colorTheme: \'dark\'})\"></label></li></ul></li></ul></div><div class=\"frame-contents\" ng-show=\"dataError || loading\" uib-collapse=\"uiOptions.collapsed\"><div class=\"overlay-container\" ng-style=\"frameContentStyle\"><div ng-show=\"dataError == \'Server Error\'\"><p>{{dataErrorString}}</p><div class=\"no-data-buttons\"><button class=\"btn btn-primary\" ng-click=\"downloadAllDatasets()\">Retry</button></div></div><div ng-show=\"dataError == \'noData\'\"><p>{{dataErrorString}}</p><div class=\"no-data-buttons\" ng-show=\"noDataErrorKeys.length > 0 && datasets.length > noDataErrorKeys.length\"><button class=\"btn btn-primary\" ng-click=\"removeDatasets( noDataErrorKeys )\">Remove empty dataset<span ng-if=\"noDataErrorKeys.length > 1\">s</span> from plot</button> <button class=\"btn\" ng-click=\"dataError = \'\'\">Dismiss</button></div></div><div ng-show=\"loading\"><div class=\"loading-bar-wrapper\"><div class=\"loading-bar-mask\" style=\"width:{{100 - loadingProgress.percent}}%\"></div><div class=\"loading-kb\">{{loadingProgress.kb}}kb</div></div><p>Retrieving data from server...</p></div></div></div><highchart class=\"lasp-chart\" ng-show=\"!dataError && !loading && (datasetType === DatasetTypes.ANALOG || datasetType === DatasetTypes.DISCRETE)\" ng-class=\"{\'chart-loading\': loading}\" uib-collapse=\"uiOptions.collapsed\" chart=\"chart\" highchart-scope=\"highchartScope\" frame-scope=\"plotObj\" ng-dblclick=\"resetZoom();\"></highchart><event-table ng-show=\"!dataError && !loading && datasetType === DatasetTypes.EVENT_TABLE\" ng-class=\"{\'chart-loading\': loading}\" uib-collapse=\"uiOptions.collapsed\" event-table-scope=\"eventTableScope\" frame-scope=\"plotObj\"></event-table><span class=\"more-options-button\" ng-click=\"setUiOptions({showBottomMenu: !uiOptions.showBottomMenu})\" ng-if=\"elementWidth < 620 && !uiOptions.collapsed && !uiOptions.showBottomMenu\" title=\"more options\"><div class=\"arrow\"></div></span> <span class=\"more-options-button reverse\" ng-click=\"setUiOptions({showBottomMenu: !uiOptions.showBottomMenu})\" ng-if=\"elementWidth < 620 && !uiOptions.collapsed && uiOptions.showBottomMenu\" title=\"less options\"><div class=\"arrow\"></div></span><div class=\"bottom-menu\" ng-show=\"uiOptions.showBottomMenu && elementWidth < 620 && !uiOptions.collapsed\"><div class=\"flex-container-row\"><span class=\"flex\"></span><div class=\"flex-nogrow header-button-group\"><div header-button-group=\"\" class=\"button-group\"></div></div></div></div></div>");
 $templateCache.put("timerange_modal/timerange_modal.html","<div class=\"modal-body-wrapper download-modal\"><div class=\"modal-body\"><button class=\"btn corner-controls\" ng-click=\"cancel()\">Close (Esc)</button><h4>Time range</h4><datepicker-minimal date=\"date\" config=\"datePickerConfig\"></datepicker-minimal><p ng-if=\"hasOffsetDatasets\"><i>Datasets with time offsets will retain their offset relative to the above time.</i></p><button class=\"btn btn-primary\" ng-click=\"ok()\">Apply</button></div></div>");}]);

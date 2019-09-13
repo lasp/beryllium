@@ -1,14 +1,5 @@
 # LASP Highstock
 
-### Contacts
-
-* **Product Owner:**
-	N/A (project is internal to web team, everyone sort of owns it)
-* **Experienced Devs:**
-    * Tyler Traver
-    * Ransom Christofferson
-    * Fernando Sanchez
-
 ### LASP Highstock Summary
 
 This is the angularJS-style directive that the web application development team uses to implement
@@ -51,9 +42,7 @@ global functions and variables if it needs to.
 
 ### Build System
 
-We use a standard Gulp and Node build system for this project:
-	[Gulp](https://gulpjs.com/)
-	[Node](https://nodejs.org/en/)
+We use a standard [Gulp](https://gulpjs.com/) and [Node](https://nodejs.org/en/) build system for this project.
 
 ##### Task Cheatsheet
 
@@ -84,10 +73,6 @@ You can easily test changes to lasp-highstock in the context of another project 
 Run `gulp watchCopy -p [project-name]` in your lasp-highstock directory, where `[project-name]` is the name of the project that has lasp-highstock as a bower dependency. The project's bower components folder must be `[project-dir]/app/bower_components`. This command will build the dist files and copy them to the other project any time you make changes to lasp-highstock source files.
 
 ### Deploying LASP Highstock
-
-##### Requirements
-
-No formal requirements, just communicate any important changes with the team.
 
 ##### Process
 

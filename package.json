@@ -2,24 +2,28 @@
   "name": "beryllium",
   "version": "1.0.0",
   "description": "Front-end library containing shared code for beryllium-* projects",
+  "scripts": {
+    "build": "gulp cleanBuild",
+    "watch": "gulp watch"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/lasp/beryllium.git"
   },
-  "author": "Brian Putnam <brian.putnam@lasp.colorado.edu>",
+  "author": "LASP Web Application Development Team <web.support@lasp.colorado.edu>",
   "license": "ISC",
   "devDependencies": {
-    "del": "^2.2.2",
+    "del": "^5.0.0",
     "gulp": "^3.9.1",
     "gulp-add-src": "^0.2.0",
-    "gulp-angular-templatecache": "^2.0.0",
-    "gulp-autoprefixer": "^3.1.1",
-    "gulp-concat": "^2.6.0",
+    "gulp-angular-templatecache": "^3.0.0",
+    "gulp-autoprefixer": "^6.1.0",
+    "gulp-concat": "^2.6.1",
     "gulp-minify-html": "^1.0.6",
-    "gulp-sass": "^2.3.2",
-    "run-sequence": "^1.2.2"
+    "gulp-sass": "^4.0.2",
+    "run-sequence": "^2.2.1"
   },
   "dependencies": {
-    "gulp-replace": "^0.5.4"
+    "gulp-replace": "^1.0.0"
   }
 }

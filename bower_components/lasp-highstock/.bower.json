@@ -46,13 +46,14 @@
     "highcharts",
     "lasp"
   ],
-  "_release": "0a24e41fe6",
+  "homepage": "https://github.com/lasp/lasp-highstock",
+  "_release": "08e86aaecf",
   "_resolution": {
     "type": "branch",
     "branch": "master",
-    "commit": "0a24e41fe66041bdda8bb12a957c23fcfd6aca6b"
+    "commit": "08e86aaecf9b63a1e1db9cb6f40ce3250e192199"
   },
   "_source": "https://github.com/lasp/lasp-highstock.git",
-  "_target": "master",
+  "_target": "*",
   "_originalSource": "https://github.com/lasp/lasp-highstock.git"
 }
