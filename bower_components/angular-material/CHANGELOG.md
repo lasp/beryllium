@@ -2090,8 +2090,8 @@ Developers are requested to always test with the latest versions. And any CodePe
 *  Angular Material HEAD (0.11.1 or greater)
   *  Bower Install - https://github.com/angular/bower-material/blob/master/angular-material.js
   *  Bower Install - https://github.com/angular/bower-material/blob/master/angular-material.css
-  *  RAWGIT - https://rawgit.com/angular/bower-material/master/angular-material.js
-  *  RAWGIT - https://rawgit.com/angular/bower-material/master/angular-material.css
+  *  RAWGIT - https://cdn.jsdelivr.net/gh/angular/bower-material@master/angular-material.js
+  *  RAWGIT - https://cdn.jsdelivr.net/gh/angular/bower-material@master/angular-material.css
 * AngularJS Latest Release versions:
   *  Angular 1.3.19 (or greater)
   *  Angular 1.4.6 (or greater).
